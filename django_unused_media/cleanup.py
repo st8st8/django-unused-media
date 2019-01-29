@@ -19,6 +19,7 @@ def get_used_media():
     media = set()
 
     for field in get_file_fields():
+        print("Examining {0}".format(field))
         is_null = {
             '%s__isnull' % field.name: True,
         }
@@ -28,11 +29,16 @@ def get_used_media():
 
         storage = field.storage
 
-        for value in field.model.objects \
-                .values_list(field.name, flat=True) \
+        for file_model_obj in field.model.objects \
                 .exclude(**is_empty).exclude(**is_null):
-            if value not in EMPTY_VALUES:
-                media.add(storage.path(value))
+            this_file = getattr(file_model_obj, field.name)
+            if this_file.name not in EMPTY_VALUES:
+                media.add(storage.path(this_file.name))
+            if hasattr(field, "variations"):
+                print("Considering variations for {0}".format(field))
+                for v in field.variations.keys():
+                    variation_name = this_file.get_variation_name(this_file.name, v)
+                    media.add(storage.path(variation_name))
 
     return media
 
